@@ -418,9 +418,6 @@ export default function App() {
                     <div className="glass-card rounded-2xl p-5 mb-5 glow-amber relative overflow-hidden">
                       <div className="absolute top-0 left-0 w-28 h-28 bg-amber-500/[0.06] rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2"></div>
                       <div className="relative z-10">
-                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/15 text-amber-300 text-[9px] font-bold mb-2 uppercase tracking-widest">
-                          <Sparkles className="w-3 h-3" /> المناسبة النشطة
-                        </div>
                         <h2 className="text-xl sm:text-2xl font-black text-white font-cairo mb-1.5">{currentEvent.name}</h2>
                         <p className="text-xs text-slate-400">
                           المبلغ: <strong className="text-amber-400 font-cairo">{formatIQD(stats.amt)}</strong> لكل فرد
