@@ -1,143 +1,209 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import {
   CheckCircle2, XCircle, Search, Plus, Printer,
   RotateCcw, Users, Wallet, Calendar, UserPlus,
   Check, Sparkles, ShieldCheck, X, Edit3,
   LayoutGrid, ListFilter, Clock, ChevronDown,
-  AlertCircle, CircleDollarSign, TrendingUp
+  AlertCircle, CircleDollarSign, Home, UserCheck,
+  Filter, ArrowUpDown, Eye, Banknote, TrendingUp,
+  Download, ChevronLeft
 } from 'lucide-react';
-import { INITIAL_FAMILIES, INITIAL_MEMBERS, DEFAULT_EVENT } from './data/initialData';
+import { INITIAL_FAMILIES, INITIAL_MEMBERS } from './data/initialData';
 import './index.css';
 
-/* ===== HELPER: Format Iraqi Dinar ===== */
-const formatIQD = (val) => new Intl.NumberFormat('ar-IQ').format(val) + ' د.ع';
+/* ═══════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════ */
+const formatIQD = (v) => new Intl.NumberFormat('ar-IQ').format(v) + ' د.ع';
 
-/* ===== STAT CARD COMPONENT ===== */
+/* ═══════════════════════════════════════════
+   CUSTOM DROPDOWN (replaces native <select>)
+   ═══════════════════════════════════════════ */
+function CustomSelect({ value, onChange, options, placeholder, icon: Icon, iconColor }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selected = options.find(o => o.value === value);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-2 glass-input rounded-xl px-3.5 py-3 text-sm text-slate-200 font-bold transition-all active:scale-[0.98]"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {Icon && <Icon className={`w-4 h-4 shrink-0 ${iconColor || 'text-amber-400'}`} />}
+          <span className="truncate">{selected?.label || placeholder}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <>
+          {/* Overlay for mobile */}
+          <div className="fixed inset-0 z-40 bg-slate-950/60 md:hidden dropdown-overlay" onClick={() => setOpen(false)} />
+
+          {/* Dropdown Menu */}
+          <div className="
+            /* Mobile: bottom sheet */
+            fixed md:absolute bottom-0 md:bottom-auto left-0 md:left-auto right-0 md:right-0
+            md:top-full md:mt-2 z-50
+            bg-slate-900 md:bg-slate-900/95 md:backdrop-blur-xl
+            border-t md:border border-slate-700/50 md:border-slate-700/40
+            rounded-t-3xl md:rounded-2xl
+            w-full md:w-full md:min-w-[200px]
+            max-h-[70vh] md:max-h-64 overflow-y-auto
+            shadow-2xl dropdown-menu
+            p-2 pt-3 md:p-1.5
+          ">
+            {/* Mobile handle */}
+            <div className="w-10 h-1 bg-slate-600 rounded-full mx-auto mb-3 md:hidden"></div>
+
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+                className={`w-full text-right px-4 py-3 md:py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-between ${
+                  value === opt.value
+                    ? 'bg-amber-500/15 text-amber-300'
+                    : 'text-slate-300 hover:bg-slate-800 active:bg-slate-800'
+                }`}
+              >
+                <span>{opt.label}</span>
+                {value === opt.value && <Check className="w-4 h-4 text-amber-400" />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   STAT CARD
+   ═══════════════════════════════════════════ */
 function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, glowClass }) {
   return (
-    <div className={`glass rounded-2xl p-5 card-hover ${glowClass || ''}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] font-bold text-slate-400 tracking-wide uppercase">{label}</span>
-        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
+    <div className={`glass-card rounded-2xl p-4 card-hover ${glowClass || ''}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight">{label}</span>
+        <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon className={`w-[18px] h-[18px] ${iconColor}`} />
         </div>
       </div>
-      <div className="text-3xl font-black text-white font-cairo leading-none">{value}</div>
-      {sub && <div className="text-[11px] text-slate-400 mt-2 font-semibold">{sub}</div>}
+      <div className="text-2xl sm:text-3xl font-black text-white font-cairo leading-none">{value}</div>
+      {sub && <div className="text-[10px] text-slate-500 mt-1.5 font-semibold">{sub}</div>}
     </div>
   );
 }
 
-/* ===== MEMBER CARD COMPONENT ===== */
+/* ═══════════════════════════════════════════
+   MEMBER CARD
+   ═══════════════════════════════════════════ */
 function MemberCard({ member, paymentInfo, onToggle, onNote }) {
   const isPaid = !!paymentInfo?.paid;
-
   return (
-    <div
-      className={`relative rounded-2xl p-4 card-hover transition-all duration-300 ${
-        isPaid
-          ? 'glass border-emerald-500/30 glow-emerald'
-          : 'glass'
-      }`}
-    >
-      {/* Paid indicator stripe */}
-      {isPaid && (
-        <div className="absolute top-0 right-0 left-0 h-[3px] rounded-t-2xl bg-gradient-to-l from-emerald-400 via-emerald-500 to-teal-400"></div>
-      )}
-
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Sequence Badge */}
-          <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-xs font-black ${
-            isPaid
-              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
-              : 'bg-slate-800/80 text-slate-300 border border-slate-700/60'
-          }`}>
-            {member.seq}
+    <div className={`relative rounded-2xl card-hover transition-all duration-300 overflow-hidden ${
+      isPaid ? 'glass-card border-emerald-500/25 glow-emerald' : 'glass-card'
+    }`}>
+      {isPaid && <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-l from-emerald-400 to-teal-400"></div>}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-xs font-black ${
+              isPaid ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 border border-slate-700/50'
+            }`}>{member.seq}</div>
+            <div className="min-w-0">
+              <h3 className="font-bold text-[14px] text-white leading-tight truncate">{member.name}</h3>
+              <span className="inline-flex mt-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/8 text-amber-400/80 border border-amber-500/10">
+                {member.family}
+              </span>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h3 className="font-bold text-[15px] text-white leading-snug truncate">{member.name}</h3>
-            <span className="inline-flex items-center mt-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-300/90 border border-amber-500/15">
-              {member.family}
-            </span>
+          <button
+            onClick={() => onToggle(member.id)}
+            className={`shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl font-extrabold text-[11px] transition-all active:scale-95 ${
+              isPaid
+                ? 'bg-emerald-500 text-emerald-950 shadow-md shadow-emerald-500/20'
+                : 'glass-input text-slate-300 hover:border-amber-500/30'
+            }`}
+          >
+            {isPaid ? <><CheckCircle2 className="w-3.5 h-3.5" /> واصل</> : <><CircleDollarSign className="w-3.5 h-3.5 text-amber-400" /> تأشير</>}
+          </button>
+        </div>
+        <div className="flex items-center justify-between text-[10px] pt-2 border-t border-slate-700/20">
+          <div className="flex items-center gap-1.5 text-slate-500">
+            {isPaid && paymentInfo?.date && <span className="flex items-center gap-0.5 text-emerald-400/70"><Clock className="w-2.5 h-2.5" />{paymentInfo.date}</span>}
+            {paymentInfo?.note && <span className="truncate max-w-[100px] text-amber-300/70">{paymentInfo.note}</span>}
           </div>
+          <button onClick={() => onNote(member, paymentInfo?.note || '')} className="text-slate-500 hover:text-amber-400 flex items-center gap-0.5 font-semibold transition-colors">
+            <Edit3 className="w-2.5 h-2.5" />{paymentInfo?.note ? 'تعديل' : 'ملاحظة'}
+          </button>
         </div>
-
-        {/* Toggle Button */}
-        <button
-          onClick={() => onToggle(member.id)}
-          className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-extrabold text-xs transition-all duration-200 cursor-pointer ${
-            isPaid
-              ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20'
-              : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700 border border-slate-600/50 hover:border-amber-500/40'
-          }`}
-        >
-          {isPaid ? (
-            <><CheckCircle2 className="w-4 h-4" /> واصل</>
-          ) : (
-            <><CircleDollarSign className="w-4 h-4 text-amber-400" /> تأشير</>
-          )}
-        </button>
-      </div>
-
-      {/* Footer metadata */}
-      <div className="flex items-center justify-between text-[11px] pt-2.5 border-t border-slate-700/30">
-        <div className="flex items-center gap-2 text-slate-400">
-          {isPaid && paymentInfo?.date && (
-            <span className="flex items-center gap-1 text-emerald-400/80 font-medium">
-              <Clock className="w-3 h-3" /> {paymentInfo.date}
-            </span>
-          )}
-          {paymentInfo?.note && (
-            <span className="truncate max-w-[120px] text-amber-300/80 font-medium bg-amber-500/8 px-2 py-0.5 rounded-md">
-              {paymentInfo.note}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => onNote(member, paymentInfo?.note || '')}
-          className="text-slate-500 hover:text-amber-400 text-[11px] font-semibold flex items-center gap-1 transition-colors"
-        >
-          <Edit3 className="w-3 h-3" />
-          {paymentInfo?.note ? 'تعديل' : 'ملاحظة'}
-        </button>
       </div>
     </div>
   );
 }
 
-/* ============================================================
+/* ═══════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════ */
+function Modal({ children, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 flex items-end sm:items-center justify-center modal-overlay" onClick={onClose}>
+      <div className="glass w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl p-6 pt-4 shadow-2xl modal-content max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-slate-600 rounded-full mx-auto mb-4 sm:hidden"></div>
+        <button onClick={onClose} className="absolute left-4 top-4 text-slate-500 hover:text-white transition-colors hidden sm:block"><X className="w-5 h-5" /></button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalHeader({ icon, color, title }) {
+  return <h3 className={`text-lg font-black ${color} flex items-center gap-2 font-cairo mb-4`}>{icon} {title}</h3>;
+}
+
+function Field({ label, children }) {
+  return <div className="mb-4"><label className="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">{label}</label>{children}</div>;
+}
+
+function ModalBtns({ onCancel, submitLabel, submitClass, onSubmit }) {
+  return (
+    <div className="flex gap-2 pt-2">
+      <button type="button" onClick={onCancel} className="flex-1 px-4 py-3 text-xs font-bold glass-input rounded-xl text-slate-300 active:bg-slate-800 transition-all">إلغاء</button>
+      {onSubmit
+        ? <button type="button" onClick={onSubmit} className={`flex-1 px-4 py-3 text-xs font-black rounded-xl shadow-lg transition-all active:scale-95 ${submitClass}`}>{submitLabel}</button>
+        : <button type="submit" className={`flex-1 px-4 py-3 text-xs font-black rounded-xl shadow-lg transition-all active:scale-95 ${submitClass}`}>{submitLabel}</button>
+      }
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
    MAIN APP
-   ============================================================ */
+   ═══════════════════════════════════════════ */
 export default function App() {
 
-  /* ---- Persistent State ---- */
-  const [events, setEvents] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('saed_events')) || [DEFAULT_EVENT]; }
-    catch { return [DEFAULT_EVENT]; }
-  });
+  /* ── State ── */
+  const [events, setEvents] = useState(() => { try { return JSON.parse(localStorage.getItem('saed_events')) || []; } catch { return []; } });
+  const [activeEventId, setActiveEventId] = useState(() => localStorage.getItem('saed_active_event_id') || '');
+  const [members, setMembers] = useState(() => { try { return JSON.parse(localStorage.getItem('saed_members')) || INITIAL_MEMBERS; } catch { return INITIAL_MEMBERS; } });
+  const [families] = useState(() => { try { return JSON.parse(localStorage.getItem('saed_families')) || INITIAL_FAMILIES; } catch { return INITIAL_FAMILIES; } });
+  const [paymentsMap, setPaymentsMap] = useState(() => { try { return JSON.parse(localStorage.getItem('saed_payments_map')) || {}; } catch { return {}; } });
 
-  const [activeEventId, setActiveEventId] = useState(() =>
-    localStorage.getItem('saed_active_event_id') || DEFAULT_EVENT.id
-  );
-
-  const [members, setMembers] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('saed_members')) || INITIAL_MEMBERS; }
-    catch { return INITIAL_MEMBERS; }
-  });
-
-  const [families] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('saed_families')) || INITIAL_FAMILIES; }
-    catch { return INITIAL_FAMILIES; }
-  });
-
-  const [paymentsMap, setPaymentsMap] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('saed_payments_map')) || { [DEFAULT_EVENT.id]: {} }; }
-    catch { return { [DEFAULT_EVENT.id]: {} }; }
-  });
-
-  /* ---- UI State ---- */
+  /* ── UI State ── */
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFamily, setSelectedFamily] = useState('ALL');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
@@ -150,59 +216,46 @@ export default function App() {
   const [newEvent, setNewEvent] = useState({ name: '', amountPerMember: 25000, notes: '' });
   const [newMember, setNewMember] = useState({ name: '', family: INITIAL_FAMILIES[0] || '' });
 
-  /* ---- LocalStorage Sync ---- */
+  /* ── Sync ── */
   useEffect(() => { localStorage.setItem('saed_events', JSON.stringify(events)); }, [events]);
   useEffect(() => { localStorage.setItem('saed_active_event_id', activeEventId); }, [activeEventId]);
   useEffect(() => { localStorage.setItem('saed_members', JSON.stringify(members)); }, [members]);
   useEffect(() => { localStorage.setItem('saed_families', JSON.stringify(families)); }, [families]);
   useEffect(() => { localStorage.setItem('saed_payments_map', JSON.stringify(paymentsMap)); }, [paymentsMap]);
 
-  /* ---- Derived ---- */
-  const currentEvent = useMemo(() => events.find(e => e.id === activeEventId) || events[0] || DEFAULT_EVENT, [events, activeEventId]);
-  const currentPayments = useMemo(() => paymentsMap[currentEvent.id] || {}, [paymentsMap, currentEvent.id]);
+  /* ── Derived ── */
+  const currentEvent = useMemo(() => events.find(e => e.id === activeEventId) || null, [events, activeEventId]);
+  const currentPayments = useMemo(() => currentEvent ? (paymentsMap[currentEvent.id] || {}) : {}, [paymentsMap, currentEvent]);
+  const hasEvents = events.length > 0;
 
-  /* ---- Confetti ---- */
+  /* ── Confetti ── */
   const pop = () => confetti({ particleCount: 80, spread: 70, origin: { y: 0.65 }, colors: ['#fbbf24', '#10b981', '#f59e0b', '#34d399'] });
 
-  /* ---- Toggle Payment ---- */
+  /* ── Actions ── */
   const togglePayment = (id) => {
+    if (!currentEvent) return;
     const wasPaid = !!currentPayments[id]?.paid;
     if (!wasPaid) pop();
-    setPaymentsMap(prev => ({
-      ...prev,
-      [currentEvent.id]: {
-        ...prev[currentEvent.id],
-        [id]: { paid: !wasPaid, date: !wasPaid ? new Date().toLocaleDateString('ar-IQ') : '', note: currentPayments[id]?.note || '' }
-      }
-    }));
+    setPaymentsMap(prev => ({ ...prev, [currentEvent.id]: { ...prev[currentEvent.id], [id]: { paid: !wasPaid, date: !wasPaid ? new Date().toLocaleDateString('ar-IQ') : '', note: currentPayments[id]?.note || '' } } }));
   };
 
-  /* ---- Mark Family Paid ---- */
   const markFamilyPaid = (fam) => {
+    if (!currentEvent) return;
     pop();
     const ids = members.filter(m => m.family === fam).map(m => m.id);
     setPaymentsMap(prev => {
-      const evtMap = { ...(prev[currentEvent.id] || {}) };
-      ids.forEach(id => { evtMap[id] = { paid: true, date: new Date().toLocaleDateString('ar-IQ'), note: evtMap[id]?.note || '' }; });
-      return { ...prev, [currentEvent.id]: evtMap };
+      const em = { ...(prev[currentEvent.id] || {}) };
+      ids.forEach(id => { em[id] = { paid: true, date: new Date().toLocaleDateString('ar-IQ'), note: em[id]?.note || '' }; });
+      return { ...prev, [currentEvent.id]: em };
     });
   };
 
-  /* ---- Save Note ---- */
   const saveNote = () => {
-    if (!noteModal) return;
-    setPaymentsMap(prev => ({
-      ...prev,
-      [currentEvent.id]: {
-        ...(prev[currentEvent.id] || {}),
-        [noteModal.id]: { ...(prev[currentEvent.id]?.[noteModal.id] || {}), note: noteText }
-      }
-    }));
-    setNoteModal(null);
-    setNoteText('');
+    if (!noteModal || !currentEvent) return;
+    setPaymentsMap(prev => ({ ...prev, [currentEvent.id]: { ...(prev[currentEvent.id] || {}), [noteModal.id]: { ...(prev[currentEvent.id]?.[noteModal.id] || {}), note: noteText } } }));
+    setNoteModal(null); setNoteText('');
   };
 
-  /* ---- Create Event ---- */
   const createEvent = (e) => {
     e.preventDefault();
     if (!newEvent.name.trim()) return;
@@ -214,7 +267,6 @@ export default function App() {
     setNewEvent({ name: '', amountPerMember: 25000, notes: '' });
   };
 
-  /* ---- Create Member ---- */
   const createMember = (e) => {
     e.preventDefault();
     if (!newMember.name.trim()) return;
@@ -223,17 +275,13 @@ export default function App() {
     setNewMember({ name: '', family: families[0] || '' });
   };
 
-  /* ---- Reset ---- */
   const handleReset = () => {
     if (!window.confirm('هل أنت متأكد من إعادة ضبط جميع البيانات؟')) return;
     localStorage.clear();
-    setEvents([DEFAULT_EVENT]);
-    setActiveEventId(DEFAULT_EVENT.id);
-    setMembers(INITIAL_MEMBERS);
-    setPaymentsMap({ [DEFAULT_EVENT.id]: {} });
+    setEvents([]); setActiveEventId(''); setMembers(INITIAL_MEMBERS); setPaymentsMap({});
   };
 
-  /* ---- Filtered Members ---- */
+  /* ── Filtered ── */
   const filtered = useMemo(() => {
     return members.filter(m => {
       if (selectedFamily !== 'ALL' && m.family !== selectedFamily) return false;
@@ -241,509 +289,475 @@ export default function App() {
         const q = searchTerm.toLowerCase().trim();
         if (!m.name.toLowerCase().includes(q) && String(m.seq) !== q && !m.family.toLowerCase().includes(q)) return false;
       }
-      const isPaid = !!currentPayments[m.id]?.paid;
-      if (paymentFilter === 'PAID' && !isPaid) return false;
-      if (paymentFilter === 'UNPAID' && isPaid) return false;
+      if (currentEvent) {
+        const isPaid = !!currentPayments[m.id]?.paid;
+        if (paymentFilter === 'PAID' && !isPaid) return false;
+        if (paymentFilter === 'UNPAID' && isPaid) return false;
+      }
       return true;
     });
-  }, [members, selectedFamily, searchTerm, paymentFilter, currentPayments]);
+  }, [members, selectedFamily, searchTerm, paymentFilter, currentPayments, currentEvent]);
 
-  /* ---- Stats ---- */
+  /* ── Stats ── */
   const stats = useMemo(() => {
     const total = members.length;
+    if (!currentEvent) return { total, paid: 0, unpaid: 0, amt: 0, collected: 0, target: 0, remaining: 0, pct: 0 };
     let paid = 0;
     members.forEach(m => { if (currentPayments[m.id]?.paid) paid++; });
     const unpaid = total - paid;
     const amt = currentEvent.amountPerMember || 0;
-    return {
-      total, paid, unpaid,
-      amt,
-      collected: paid * amt,
-      target: total * amt,
-      remaining: unpaid * amt,
-      pct: total > 0 ? Math.round((paid / total) * 100) : 0
-    };
+    return { total, paid, unpaid, amt, collected: paid * amt, target: total * amt, remaining: unpaid * amt, pct: total > 0 ? Math.round((paid / total) * 100) : 0 };
   }, [members, currentPayments, currentEvent]);
 
-  /* ============================================================
-     RENDER
-     ============================================================ */
-  return (
-    <div dir="rtl" className="min-h-screen pb-20">
+  /* ── Family options for custom dropdown ── */
+  const familyOptions = useMemo(() => [
+    { value: 'ALL', label: `كل العوائل (${families.length})` },
+    ...families.map(f => {
+      const count = members.filter(m => m.family === f).length;
+      return { value: f, label: `${f}  (${count})` };
+    })
+  ], [families, members]);
 
-      {/* ===== BACKGROUND DECORATIONS ===== */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-[-200px] right-[-200px] w-[600px] h-[600px] rounded-full bg-amber-600/[0.04] blur-[120px]"></div>
-        <div className="absolute bottom-[-300px] left-[-200px] w-[500px] h-[500px] rounded-full bg-blue-600/[0.03] blur-[120px]"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-emerald-600/[0.02] blur-[160px]"></div>
+  /* ── Event options for custom dropdown ── */
+  const eventOptions = useMemo(() =>
+    events.map(evt => ({ value: evt.id, label: `${evt.name} — ${formatIQD(evt.amountPerMember)}` }))
+  , [events]);
+
+  /* ═══════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════ */
+  return (
+    <div dir="rtl" className="min-h-screen min-h-dvh pb-24">
+
+      {/* BG Decorations */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-[-200px] right-[-150px] w-[500px] h-[500px] rounded-full bg-amber-600/[0.035] blur-[120px]"></div>
+        <div className="absolute bottom-[-200px] left-[-150px] w-[400px] h-[400px] rounded-full bg-blue-600/[0.025] blur-[120px]"></div>
       </div>
 
-      {/* ===== HEADER ===== */}
-      <header className="sticky top-0 z-40 glass no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4">
-
-            {/* Brand */}
-            <div className="flex items-center gap-3.5">
+      {/* ═════ TOP HEADER ═════ */}
+      <header className="sticky top-0 z-30 glass no-print">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
               <div className="relative">
-                <div className="w-12 h-12 rounded-2xl animated-gradient p-[2px]">
-                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <ShieldCheck className="w-6 h-6 text-amber-400" />
+                <div className="w-10 h-10 rounded-xl animated-gradient p-[2px]">
+                  <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-amber-400" />
                   </div>
                 </div>
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-950 pulse-ring"></div>
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950 pulse-ring"></div>
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-gradient-gold font-cairo">
-                  تطبيق تحصيل وتأشير دفع العشيرة
-                </h1>
-                <p className="text-[11px] text-slate-400 font-semibold tracking-wide">
-                  نظام السداد والفراض والمناسبات الاجتماعية العامة
-                </p>
+                <h1 className="text-base sm:text-lg font-black text-gradient-gold font-cairo leading-tight">تحصيل العشيرة</h1>
+                <p className="text-[9px] text-slate-500 font-semibold">نظام السداد والفراض والمناسبات</p>
               </div>
             </div>
 
-            {/* Actions Row */}
-            <div className="flex flex-wrap items-center gap-2">
-
-              {/* Event Selector */}
-              <div className="flex items-center gap-2 glass-light rounded-xl px-3 py-2">
-                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                <select
-                  value={activeEventId}
-                  onChange={e => setActiveEventId(e.target.value)}
-                  className="bg-transparent text-sm font-bold text-slate-200 focus:outline-none cursor-pointer max-w-[200px]"
-                >
-                  {events.map(evt => (
-                    <option key={evt.id} value={evt.id} className="bg-slate-900">{evt.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              </div>
-
-              <button onClick={() => setIsAddEventOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold glass-light rounded-xl text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-all cursor-pointer">
-                <Plus className="w-4 h-4" /> مناسبة جديدة
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setIsAddEventOpen(true)} title="مناسبة جديدة" className="p-2.5 rounded-xl glass-input text-amber-400 hover:text-amber-300 active:scale-90 transition-all">
+                <Plus className="w-4 h-4" />
               </button>
-
-              <button onClick={() => setIsAddMemberOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold glass-light rounded-xl text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10 transition-all cursor-pointer">
-                <UserPlus className="w-4 h-4" /> إضافة فرد
+              <button onClick={() => setIsAddMemberOpen(true)} title="إضافة فرد" className="p-2.5 rounded-xl glass-input text-emerald-400 hover:text-emerald-300 active:scale-90 transition-all">
+                <UserPlus className="w-4 h-4" />
               </button>
-
-              <button onClick={() => setIsPrintOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold glass-light rounded-xl text-sky-300 hover:text-sky-200 hover:bg-sky-500/10 transition-all cursor-pointer">
-                <Printer className="w-4 h-4" /> طباعة
-              </button>
-
-              <button onClick={handleReset} title="إعادة ضبط" className="p-2 text-slate-500 hover:text-rose-400 glass-light rounded-xl transition-all">
-                <RotateCcw className="w-4 h-4" />
+              {hasEvents && (
+                <button onClick={() => setIsPrintOpen(true)} title="طباعة" className="p-2.5 rounded-xl glass-input text-sky-400 hover:text-sky-300 active:scale-90 transition-all">
+                  <Printer className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={handleReset} title="إعادة ضبط" className="p-2.5 rounded-xl glass-input text-slate-500 hover:text-rose-400 active:scale-90 transition-all">
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* ===== MAIN CONTENT ===== */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 no-print">
+      {/* ═════ CONTENT ═════ */}
+      <main className="max-w-3xl mx-auto px-4 pt-4 no-print">
 
-        {/* ---- Event Banner ---- */}
-        <div className="relative glass rounded-3xl p-6 mb-8 overflow-hidden glow-amber">
-          {/* Decorative corner */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/[0.06] rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-0 w-24 h-24 bg-emerald-500/[0.04] rounded-full blur-2xl translate-x-1/2 translate-y-1/2"></div>
+        {/* ═════════ TAB: DASHBOARD ═════════ */}
+        {activeTab === 'dashboard' && (
+          <div>
 
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative z-10">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold mb-3 uppercase tracking-wider">
-                <Sparkles className="w-3 h-3" /> المناسبة النشطة
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white font-cairo mb-2">{currentEvent.name}</h2>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
-                <span>المبلغ المستحق: <strong className="text-amber-400 font-cairo">{formatIQD(stats.amt)}</strong></span>
-                {currentEvent.notes && <span className="text-slate-500">• {currentEvent.notes}</span>}
-              </div>
-            </div>
-
-            {/* Progress Ring */}
-            <div className="glass-light rounded-2xl p-4 min-w-[250px]">
-              <div className="flex items-center justify-between text-xs font-bold mb-2">
-                <span className="text-slate-400">نسبة الاستيفاء</span>
-                <span className="text-amber-400 font-cairo text-base">{stats.pct}%</span>
-              </div>
-              <div className="w-full h-3 bg-slate-800/80 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700 ease-out"
-                  style={{
-                    width: `${stats.pct}%`,
-                    background: 'linear-gradient(90deg, #d97706, #f59e0b, #10b981)'
-                  }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500 mt-2 font-semibold">
-                <span>المحصّل: {formatIQD(stats.collected)}</span>
-                <span>المستهدف: {formatIQD(stats.target)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ---- Stats Grid ---- */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={Users} iconColor="text-sky-400" iconBg="bg-sky-500/10" label="إجمالي الأفراد" value={stats.total} sub={`في ${families.length} عائلة`} />
-          <StatCard icon={CheckCircle2} iconColor="text-emerald-400" iconBg="bg-emerald-500/10" label="الواصلون" value={stats.paid} sub={`${stats.pct}% من المجموع`} glowClass="glow-emerald" />
-          <StatCard icon={XCircle} iconColor="text-rose-400" iconBg="bg-rose-500/10" label="المتبقون" value={stats.unpaid} sub={`المتبقي: ${formatIQD(stats.remaining)}`} glowClass="glow-rose" />
-          <StatCard icon={Wallet} iconColor="text-amber-400" iconBg="bg-amber-500/10" label="المحصّل" value={formatIQD(stats.collected)} sub={`من ${formatIQD(stats.target)}`} glowClass="glow-amber" />
-        </div>
-
-        {/* ---- Filter Bar ---- */}
-        <div className="glass rounded-2xl p-4 mb-6">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="ابحث بالاسم أو التسلسل أو العائلة..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl pr-10 pl-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 focus:bg-slate-900/80 transition-all"
-              />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-
-              {/* Family */}
-              <select
-                value={selectedFamily}
-                onChange={e => setSelectedFamily(e.target.value)}
-                className="bg-slate-900/60 border border-slate-700/50 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-200 focus:outline-none focus:border-amber-500/50 cursor-pointer"
-              >
-                <option value="ALL" className="bg-slate-900">كل العوائل ({families.length})</option>
-                {families.map(f => <option key={f} value={f} className="bg-slate-900">{f}</option>)}
-              </select>
-
-              {/* Status Tabs */}
-              <div className="flex items-center bg-slate-900/60 border border-slate-700/50 rounded-xl p-1">
-                {[
-                  { key: 'ALL', label: `الكل (${members.length})`, active: 'bg-amber-500/15 text-amber-300 border-amber-500/25' },
-                  { key: 'PAID', label: `واصل (${stats.paid})`, active: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' },
-                  { key: 'UNPAID', label: `متبقي (${stats.unpaid})`, active: 'bg-rose-500/15 text-rose-300 border-rose-500/25' },
-                ].map(tab => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setPaymentFilter(tab.key)}
-                    className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
-                      paymentFilter === tab.key ? `${tab.active} border` : 'text-slate-500 hover:text-slate-300 border border-transparent'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* View Toggle */}
-              <div className="flex items-center bg-slate-900/60 border border-slate-700/50 rounded-xl p-1">
-                <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-slate-800 text-amber-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button onClick={() => setViewMode('table')} className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-slate-800 text-amber-400' : 'text-slate-500 hover:text-slate-300'}`}>
-                  <ListFilter className="w-4 h-4" />
+            {/* No events empty state */}
+            {!hasEvents && (
+              <div className="text-center py-16 glass-card rounded-3xl mt-4">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                  <Calendar className="w-8 h-8 text-amber-400" />
+                </div>
+                <h2 className="text-xl font-black text-white font-cairo mb-2">لا توجد مناسبات بعد</h2>
+                <p className="text-sm text-slate-400 mb-6 max-w-xs mx-auto">أنشئ أول مناسبة أو فريضة لبدء تسجيل المدفوعات وتتبع الأفراد</p>
+                <button
+                  onClick={() => setIsAddEventOpen(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-amber-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                >
+                  <Plus className="w-5 h-5" /> إنشاء مناسبة جديدة
                 </button>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Family Batch Action */}
-          {selectedFamily !== 'ALL' && (
-            <div className="mt-3 pt-3 border-t border-slate-700/30 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">
-                عائلة <strong className="text-amber-400">{selectedFamily}</strong> — {filtered.length} فرد
-              </span>
-              <button
-                onClick={() => markFamilyPaid(selectedFamily)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 rounded-lg hover:bg-emerald-500/20 text-xs font-bold transition-all"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" /> تأشير الكل واصل
-              </button>
-            </div>
-          )}
-        </div>
+            {hasEvents && (
+              <>
+                {/* Event Selector */}
+                <div className="mb-5">
+                  <CustomSelect
+                    value={activeEventId}
+                    onChange={setActiveEventId}
+                    options={eventOptions}
+                    placeholder="اختر مناسبة..."
+                    icon={Calendar}
+                    iconColor="text-amber-400"
+                  />
+                </div>
 
-        {/* Results Counter */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          <p className="text-xs font-semibold text-slate-500">
-            عرض <span className="text-amber-400 font-cairo">{filtered.length}</span> فرد من أصل <span className="text-slate-300">{members.length}</span>
-          </p>
-        </div>
+                {currentEvent && (
+                  <>
+                    {/* Event Banner */}
+                    <div className="glass-card rounded-2xl p-5 mb-5 glow-amber relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-28 h-28 bg-amber-500/[0.06] rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2"></div>
+                      <div className="relative z-10">
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/15 text-amber-300 text-[9px] font-bold mb-2 uppercase tracking-widest">
+                          <Sparkles className="w-3 h-3" /> المناسبة النشطة
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-black text-white font-cairo mb-1.5">{currentEvent.name}</h2>
+                        <p className="text-xs text-slate-400">
+                          المبلغ: <strong className="text-amber-400 font-cairo">{formatIQD(stats.amt)}</strong> لكل فرد
+                          {currentEvent.notes && <span className="text-slate-500"> • {currentEvent.notes}</span>}
+                        </p>
 
-        {/* ---- GRID VIEW ---- */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map(m => (
-              <MemberCard
-                key={m.id}
-                member={m}
-                paymentInfo={currentPayments[m.id]}
-                onToggle={togglePayment}
-                onNote={(member, note) => { setNoteModal(member); setNoteText(note); }}
-              />
-            ))}
-          </div>
-        )}
+                        {/* Progress */}
+                        <div className="mt-4 bg-slate-900/60 rounded-xl p-3">
+                          <div className="flex items-center justify-between text-[10px] font-bold mb-1.5">
+                            <span className="text-slate-400">نسبة الاستيفاء</span>
+                            <span className="text-amber-400 font-cairo text-sm">{stats.pct}%</span>
+                          </div>
+                          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full progress-bar" style={{ width: `${stats.pct}%` }}></div>
+                          </div>
+                          <div className="flex justify-between text-[9px] text-slate-500 mt-1.5 font-semibold">
+                            <span>المحصّل: {formatIQD(stats.collected)}</span>
+                            <span>المستهدف: {formatIQD(stats.target)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-        {/* ---- TABLE VIEW ---- */}
-        {viewMode === 'table' && (
-          <div className="glass rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-sm">
-                <thead>
-                  <tr className="bg-slate-900/80 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-700/40">
-                    <th className="px-4 py-3.5 text-center w-14">ت</th>
-                    <th className="px-4 py-3.5">الاسم</th>
-                    <th className="px-4 py-3.5">العائلة</th>
-                    <th className="px-4 py-3.5 text-center">الحالة</th>
-                    <th className="px-4 py-3.5">التاريخ</th>
-                    <th className="px-4 py-3.5">ملاحظات</th>
-                    <th className="px-4 py-3.5 text-center w-28">إجراء</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/40">
-                  {filtered.map(m => {
-                    const pi = currentPayments[m.id];
-                    const isPaid = !!pi?.paid;
-                    return (
-                      <tr key={m.id} className={`hover:bg-slate-800/30 transition-colors ${isPaid ? 'bg-emerald-950/10' : ''}`}>
-                        <td className="px-4 py-3 text-center font-bold text-slate-500 font-cairo">{m.seq}</td>
-                        <td className="px-4 py-3 font-bold text-white">{m.name}</td>
-                        <td className="px-4 py-3 text-amber-300/80 font-semibold text-xs">{m.family}</td>
-                        <td className="px-4 py-3 text-center">
-                          {isPaid
-                            ? <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold"><Check className="w-3 h-3" /> واصل</span>
-                            : <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[11px] font-bold">لم يدفع</span>
-                          }
-                        </td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">{pi?.date || '—'}</td>
-                        <td className="px-4 py-3 text-slate-400 text-xs">{pi?.note || '—'}</td>
-                        <td className="px-4 py-3 text-center">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-5">
+                      <StatCard icon={Users} iconColor="text-sky-400" iconBg="bg-sky-500/10" label="الأفراد" value={stats.total} sub={`${families.length} عائلة`} />
+                      <StatCard icon={CheckCircle2} iconColor="text-emerald-400" iconBg="bg-emerald-500/10" label="الواصلون" value={stats.paid} sub={`${stats.pct}%`} glowClass="glow-emerald" />
+                      <StatCard icon={XCircle} iconColor="text-rose-400" iconBg="bg-rose-500/10" label="المتبقون" value={stats.unpaid} sub={formatIQD(stats.remaining)} glowClass="glow-rose" />
+                      <StatCard icon={Wallet} iconColor="text-amber-400" iconBg="bg-amber-500/10" label="المحصّل" value={formatIQD(stats.collected)} glowClass="glow-amber" />
+                    </div>
+
+                    {/* Filter & Search */}
+                    <div className="glass-card rounded-2xl p-4 mb-5">
+                      {/* Search */}
+                      <div className="relative mb-3">
+                        <Search className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="بحث بالاسم أو التسلسل..."
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          className="w-full glass-input rounded-xl pr-10 pl-10 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/40 transition-all"
+                        />
+                        {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"><X className="w-4 h-4" /></button>}
+                      </div>
+
+                      {/* Family Dropdown */}
+                      <div className="mb-3">
+                        <CustomSelect
+                          value={selectedFamily}
+                          onChange={setSelectedFamily}
+                          options={familyOptions}
+                          placeholder="كل العوائل"
+                          icon={Users}
+                          iconColor="text-sky-400"
+                        />
+                      </div>
+
+                      {/* Status Tabs */}
+                      <div className="flex items-center bg-slate-900/50 rounded-xl p-1 gap-0.5">
+                        {[
+                          { key: 'ALL', label: `الكل`, count: members.length, activeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/25' },
+                          { key: 'PAID', label: `واصل`, count: stats.paid, activeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' },
+                          { key: 'UNPAID', label: `متبقي`, count: stats.unpaid, activeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/25' },
+                        ].map(tab => (
                           <button
-                            onClick={() => togglePayment(m.id)}
-                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                              isPaid
-                                ? 'bg-rose-500/10 text-rose-300 border border-rose-500/25 hover:bg-rose-500/20'
-                                : 'bg-emerald-500 text-emerald-950 font-extrabold hover:bg-emerald-400'
+                            key={tab.key}
+                            onClick={() => setPaymentFilter(tab.key)}
+                            className={`flex-1 px-2 py-2 text-[11px] font-bold rounded-lg transition-all active:scale-95 ${
+                              paymentFilter === tab.key ? `${tab.activeClass} border` : 'text-slate-500 border border-transparent'
                             }`}
                           >
-                            {isPaid ? 'إلغاء' : 'تأشير واصل'}
+                            {tab.label} ({tab.count})
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        ))}
+                      </div>
+
+                      {/* Family batch */}
+                      {selectedFamily !== 'ALL' && (
+                        <div className="mt-3 pt-3 border-t border-slate-700/20 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-500 font-medium">{selectedFamily} — {filtered.length} فرد</span>
+                          <button onClick={() => markFamilyPaid(selectedFamily)} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-lg text-[10px] font-bold active:scale-95 transition-all">
+                            <CheckCircle2 className="w-3 h-3" /> تأشير الكل واصل
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* View Mode + Count */}
+                    <div className="flex items-center justify-between mb-3 px-0.5">
+                      <p className="text-[10px] font-semibold text-slate-500">
+                        <span className="text-amber-400 font-cairo">{filtered.length}</span> فرد
+                      </p>
+                      <div className="flex bg-slate-900/50 border border-slate-700/30 rounded-lg p-0.5">
+                        <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-slate-800 text-amber-400' : 'text-slate-500'}`}>
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setViewMode('table')} className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-slate-800 text-amber-400' : 'text-slate-500'}`}>
+                          <ListFilter className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Grid */}
+                    {viewMode === 'grid' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {filtered.map(m => (
+                          <MemberCard key={m.id} member={m} paymentInfo={currentPayments[m.id]} onToggle={togglePayment} onNote={(member, note) => { setNoteModal(member); setNoteText(note); }} />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Table */}
+                    {viewMode === 'table' && (
+                      <div className="glass-card rounded-2xl overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-right text-xs">
+                            <thead>
+                              <tr className="bg-slate-900/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700/30">
+                                <th className="px-3 py-3 text-center w-10">ت</th>
+                                <th className="px-3 py-3">الاسم</th>
+                                <th className="px-3 py-3">العائلة</th>
+                                <th className="px-3 py-3 text-center">الحالة</th>
+                                <th className="px-3 py-3 text-center w-20">إجراء</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/30">
+                              {filtered.map(m => {
+                                const pi = currentPayments[m.id];
+                                const isPaid = !!pi?.paid;
+                                return (
+                                  <tr key={m.id} className={`transition-colors ${isPaid ? 'bg-emerald-950/10' : ''}`}>
+                                    <td className="px-3 py-2.5 text-center font-bold text-slate-500 font-cairo">{m.seq}</td>
+                                    <td className="px-3 py-2.5 font-bold text-white text-[11px]">{m.name}</td>
+                                    <td className="px-3 py-2.5 text-amber-400/70 font-semibold text-[10px]">{m.family}</td>
+                                    <td className="px-3 py-2.5 text-center">
+                                      {isPaid
+                                        ? <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[9px] font-bold"><Check className="w-2.5 h-2.5" />واصل</span>
+                                        : <span className="inline-flex px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 text-[9px] font-bold">متبقي</span>
+                                      }
+                                    </td>
+                                    <td className="px-3 py-2.5 text-center">
+                                      <button onClick={() => togglePayment(m.id)} className={`px-2 py-1 rounded-lg text-[10px] font-bold active:scale-90 transition-all ${isPaid ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20' : 'bg-emerald-500 text-emerald-950 font-extrabold'}`}>
+                                        {isPaid ? 'إلغاء' : 'تأشير'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {filtered.length === 0 && (
+                      <div className="text-center py-14 glass-card rounded-2xl">
+                        <AlertCircle className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                        <h3 className="text-base font-bold text-slate-300 font-cairo">لا يوجد نتائج</h3>
+                        <p className="text-xs text-slate-500 mt-1">جرّب تعديل البحث أو الفلاتر</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 
-        {/* Empty State */}
-        {filtered.length === 0 && (
-          <div className="text-center py-20 glass rounded-2xl">
-            <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-slate-300 mb-1 font-cairo">لا يوجد نتائج</h3>
-            <p className="text-sm text-slate-500">جرّب تعديل خيارات البحث أو الفلاتر</p>
+        {/* ═════════ TAB: MEMBERS ═════════ */}
+        {activeTab === 'members' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-black text-white font-cairo flex items-center gap-2">
+                <Users className="w-5 h-5 text-sky-400" />
+                سجل أفراد العشيرة
+              </h2>
+              <button onClick={() => setIsAddMemberOpen(true)} className="flex items-center gap-1 px-3 py-2 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-xl text-[11px] font-bold active:scale-95 transition-all">
+                <UserPlus className="w-3.5 h-3.5" /> إضافة
+              </button>
+            </div>
+
+            {/* Search in members */}
+            <div className="relative mb-4">
+              <Search className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="ابحث عن فرد..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full glass-input rounded-xl pr-10 pl-10 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500/40 transition-all"
+              />
+              {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"><X className="w-4 h-4" /></button>}
+            </div>
+
+            {/* Family filter */}
+            <div className="mb-4">
+              <CustomSelect
+                value={selectedFamily}
+                onChange={setSelectedFamily}
+                options={familyOptions}
+                placeholder="كل العوائل"
+                icon={Users}
+                iconColor="text-sky-400"
+              />
+            </div>
+
+            {/* Members Count */}
+            <p className="text-[10px] font-semibold text-slate-500 mb-3 px-0.5">
+              <span className="text-sky-400 font-cairo">{filtered.length}</span> فرد من أصل <span className="text-slate-300">{members.length}</span>
+            </p>
+
+            {/* Members List */}
+            <div className="space-y-2">
+              {filtered.map((m, idx) => (
+                <div key={m.id} className="glass-card rounded-xl p-3.5 flex items-center gap-3 card-hover">
+                  <div className="w-8 h-8 shrink-0 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-xs font-black border border-sky-500/15">
+                    {m.seq}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-[13px] text-white truncate">{m.name}</h3>
+                    <span className="text-[10px] font-bold text-amber-400/70">{m.family}</span>
+                  </div>
+                  {currentEvent && (
+                    <div>
+                      {currentPayments[m.id]?.paid
+                        ? <span className="flex items-center gap-0.5 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/15"><Check className="w-3 h-3" /> واصل</span>
+                        : <span className="px-2 py-1 rounded-lg bg-slate-800 text-slate-500 text-[10px] font-bold border border-slate-700/40">—</span>
+                      }
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-14 glass-card rounded-2xl">
+                <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                <p className="text-sm font-bold text-slate-400 font-cairo">لا يوجد أفراد مطابقين</p>
+              </div>
+            )}
           </div>
         )}
       </main>
 
-      {/* =============== MODALS =============== */}
+      {/* ═════ BOTTOM NAV BAR ═════ */}
+      <nav className="fixed bottom-0 inset-x-0 z-30 bottom-nav no-print" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="max-w-3xl mx-auto flex items-stretch">
+          {[
+            { key: 'dashboard', label: 'الرئيسية', icon: Home, activeColor: 'text-amber-400' },
+            { key: 'members', label: 'الأفراد', icon: Users, activeColor: 'text-sky-400' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all active:scale-90 ${
+                activeTab === tab.key ? tab.activeColor : 'text-slate-500'
+              }`}
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="text-[10px] font-bold">{tab.label}</span>
+              {activeTab === tab.key && <div className="w-5 h-0.5 rounded-full bg-current mt-0.5"></div>}
+            </button>
+          ))}
+        </div>
+      </nav>
 
-      {/* Modal: New Event */}
+      {/* ═════ MODALS ═════ */}
+
       {isAddEventOpen && (
         <Modal onClose={() => setIsAddEventOpen(false)}>
-          <ModalHeader icon={<Plus className="w-5 h-5" />} color="text-amber-400" title="مناسبة أو فريضة جديدة" />
-          <form onSubmit={createEvent} className="space-y-4 mt-5">
-            <Field label="اسم المناسبة / الفريضة">
-              <input required placeholder="مثال: فريضة زواج ..." value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} className="input-field" />
-            </Field>
-            <Field label="المبلغ لكل فرد (د.ع)">
-              <input type="number" required step="1000" value={newEvent.amountPerMember} onChange={e => setNewEvent({ ...newEvent, amountPerMember: e.target.value })} className="input-field" />
-            </Field>
-            <Field label="ملاحظات">
-              <textarea rows="2" placeholder="تفاصيل إضافية..." value={newEvent.notes} onChange={e => setNewEvent({ ...newEvent, notes: e.target.value })} className="input-field resize-none"></textarea>
-            </Field>
-            <ModalActions onCancel={() => setIsAddEventOpen(false)} submitLabel="إنشاء المناسبة" submitClass="bg-amber-500 hover:bg-amber-400 text-slate-950" />
+          <ModalHeader icon={<Plus className="w-5 h-5" />} color="text-amber-400" title="مناسبة جديدة" />
+          <form onSubmit={createEvent}>
+            <Field label="اسم المناسبة"><input required placeholder="مثال: فريضة زواج ..." value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} className="input-field" /></Field>
+            <Field label="المبلغ لكل فرد (د.ع)"><input type="number" required step="1000" value={newEvent.amountPerMember} onChange={e => setNewEvent({ ...newEvent, amountPerMember: e.target.value })} className="input-field" /></Field>
+            <Field label="ملاحظات"><textarea rows="2" placeholder="تفاصيل..." value={newEvent.notes} onChange={e => setNewEvent({ ...newEvent, notes: e.target.value })} className="input-field resize-none"></textarea></Field>
+            <ModalBtns onCancel={() => setIsAddEventOpen(false)} submitLabel="إنشاء المناسبة" submitClass="bg-amber-500 hover:bg-amber-400 text-slate-950" />
           </form>
         </Modal>
       )}
 
-      {/* Modal: New Member */}
       {isAddMemberOpen && (
         <Modal onClose={() => setIsAddMemberOpen(false)}>
           <ModalHeader icon={<UserPlus className="w-5 h-5" />} color="text-emerald-400" title="إضافة فرد جديد" />
-          <form onSubmit={createMember} className="space-y-4 mt-5">
-            <Field label="الاسم الثلاثي أو الرباعي">
-              <input required placeholder="مثال: علي حسن سعيد ..." value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} className="input-field" />
-            </Field>
+          <form onSubmit={createMember}>
+            <Field label="الاسم الثلاثي أو الرباعي"><input required placeholder="علي حسن سعيد ..." value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} className="input-field" /></Field>
             <Field label="العائلة">
-              <select value={newMember.family} onChange={e => setNewMember({ ...newMember, family: e.target.value })} className="input-field cursor-pointer">
-                {families.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
+              <CustomSelect value={newMember.family} onChange={v => setNewMember({ ...newMember, family: v })} options={families.map(f => ({ value: f, label: f }))} placeholder="اختر العائلة" icon={Users} iconColor="text-amber-400" />
             </Field>
-            <ModalActions onCancel={() => setIsAddMemberOpen(false)} submitLabel="إضافة الفرد" submitClass="bg-emerald-500 hover:bg-emerald-400 text-emerald-950" />
+            <ModalBtns onCancel={() => setIsAddMemberOpen(false)} submitLabel="إضافة الفرد" submitClass="bg-emerald-500 hover:bg-emerald-400 text-emerald-950" />
           </form>
         </Modal>
       )}
 
-      {/* Modal: Note */}
       {noteModal && (
         <Modal onClose={() => setNoteModal(null)}>
           <ModalHeader icon={<Edit3 className="w-5 h-5" />} color="text-amber-400" title={`ملاحظة: ${noteModal.name}`} />
-          <div className="mt-5 space-y-4">
-            <textarea rows="3" placeholder="أدخل ملاحظة السداد..." value={noteText} onChange={e => setNoteText(e.target.value)} className="input-field resize-none"></textarea>
-            <ModalActions onCancel={() => setNoteModal(null)} submitLabel="حفظ" submitClass="bg-amber-500 hover:bg-amber-400 text-slate-950" onSubmit={saveNote} />
-          </div>
+          <textarea rows="3" placeholder="أدخل ملاحظة السداد..." value={noteText} onChange={e => setNoteText(e.target.value)} className="input-field resize-none mb-4"></textarea>
+          <ModalBtns onCancel={() => setNoteModal(null)} submitLabel="حفظ" submitClass="bg-amber-500 hover:bg-amber-400 text-slate-950" onSubmit={saveNote} />
         </Modal>
       )}
 
-      {/* Modal: Print Preview */}
-      {isPrintOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 sm:p-8 flex flex-col items-center">
-          <div className="w-full max-w-4xl flex items-center justify-between mb-6 no-print">
-            <h3 className="text-lg font-bold text-slate-200 font-cairo">معاينة الكشف الرسمي</h3>
-            <div className="flex gap-3">
-              <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-emerald-950 font-black text-xs rounded-xl shadow-lg hover:bg-emerald-400 transition-all cursor-pointer">
-                <Printer className="w-4 h-4" /> طباعة
-              </button>
-              <button onClick={() => setIsPrintOpen(false)} className="px-4 py-2 glass-light text-slate-200 font-bold text-xs rounded-xl hover:bg-slate-800 transition-all">
-                إغلاق
-              </button>
+      {isPrintOpen && currentEvent && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 flex flex-col items-center modal-overlay">
+          <div className="w-full max-w-4xl flex items-center justify-between mb-4 no-print">
+            <h3 className="text-base font-bold text-slate-200 font-cairo">كشف رسمي</h3>
+            <div className="flex gap-2">
+              <button onClick={() => window.print()} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 text-emerald-950 font-black text-xs rounded-xl active:scale-95"><Printer className="w-4 h-4" />طباعة</button>
+              <button onClick={() => setIsPrintOpen(false)} className="px-4 py-2 glass-input text-slate-200 font-bold text-xs rounded-xl">إغلاق</button>
             </div>
           </div>
-
-          {/* Printable Sheet */}
-          <div className="print-container w-full max-w-4xl bg-white text-slate-950 rounded-2xl p-8 sm:p-12 shadow-2xl text-right">
-            <div className="border-b-2 border-slate-900 pb-6 mb-6 flex items-start justify-between">
-              <div>
-                <h1 className="text-2xl font-black text-slate-950 mb-1 font-cairo">كشف تحصيل وسداد العشيرة</h1>
-                <p className="text-sm font-bold text-slate-700">المناسبة: {currentEvent.name}</p>
-                <p className="text-xs text-slate-500 mt-1">تاريخ الكشف: {new Date().toLocaleDateString('ar-IQ')}</p>
-              </div>
-              <div className="text-left border-r-2 border-slate-300 pr-4">
-                <p className="text-xs font-bold text-slate-500">المبلغ / الفرد:</p>
-                <p className="text-lg font-black text-slate-950 font-cairo">{formatIQD(stats.amt)}</p>
-              </div>
+          <div className="print-container w-full max-w-4xl bg-white text-slate-950 rounded-2xl p-6 sm:p-10 shadow-2xl text-right">
+            <div className="border-b-2 border-slate-900 pb-4 mb-4 flex items-start justify-between">
+              <div><h1 className="text-xl font-black text-slate-950 font-cairo mb-1">كشف تحصيل العشيرة</h1><p className="text-xs font-bold text-slate-600">{currentEvent.name}</p><p className="text-[10px] text-slate-400 mt-0.5">{new Date().toLocaleDateString('ar-IQ')}</p></div>
+              <div className="text-left border-r-2 border-slate-300 pr-3"><p className="text-[10px] font-bold text-slate-500">المبلغ/فرد</p><p className="text-base font-black font-cairo">{formatIQD(stats.amt)}</p></div>
             </div>
-
-            <div className="grid grid-cols-4 gap-3 mb-6 bg-slate-100 p-4 rounded-xl text-center border border-slate-300">
-              <div><p className="text-[10px] font-bold text-slate-500">الأفراد</p><p className="text-lg font-black">{stats.total}</p></div>
-              <div><p className="text-[10px] font-bold text-slate-500">الواصلون</p><p className="text-lg font-black text-emerald-700">{stats.paid}</p></div>
-              <div><p className="text-[10px] font-bold text-slate-500">المتبقون</p><p className="text-lg font-black text-rose-700">{stats.unpaid}</p></div>
-              <div><p className="text-[10px] font-bold text-slate-500">المحصّل</p><p className="text-base font-black text-amber-700">{formatIQD(stats.collected)}</p></div>
+            <div className="grid grid-cols-4 gap-2 mb-4 bg-slate-100 p-3 rounded-lg text-center border border-slate-300 text-xs">
+              <div><p className="font-bold text-slate-500 text-[9px]">الأفراد</p><p className="font-black text-sm">{stats.total}</p></div>
+              <div><p className="font-bold text-slate-500 text-[9px]">الواصلون</p><p className="font-black text-sm text-emerald-700">{stats.paid}</p></div>
+              <div><p className="font-bold text-slate-500 text-[9px]">المتبقون</p><p className="font-black text-sm text-rose-700">{stats.unpaid}</p></div>
+              <div><p className="font-bold text-slate-500 text-[9px]">المحصّل</p><p className="font-black text-xs text-amber-700">{formatIQD(stats.collected)}</p></div>
             </div>
-
-            <table className="w-full text-right text-xs border border-slate-400 mb-8">
-              <thead>
-                <tr className="bg-slate-200 text-slate-950 font-bold border-b border-slate-400">
-                  <th className="p-2 border-l border-slate-400 text-center w-10">ت</th>
-                  <th className="p-2 border-l border-slate-400">الاسم</th>
-                  <th className="p-2 border-l border-slate-400">العائلة</th>
-                  <th className="p-2 border-l border-slate-400 text-center w-20">الحالة</th>
-                  <th className="p-2">ملاحظات</th>
-                </tr>
-              </thead>
+            <table className="w-full text-right text-[10px] border border-slate-400 mb-6">
+              <thead><tr className="bg-slate-200 font-bold border-b border-slate-400"><th className="p-1.5 border-l border-slate-400 text-center w-8">ت</th><th className="p-1.5 border-l border-slate-400">الاسم</th><th className="p-1.5 border-l border-slate-400">العائلة</th><th className="p-1.5 border-l border-slate-400 text-center w-16">الحالة</th><th className="p-1.5">ملاحظات</th></tr></thead>
               <tbody>
-                {filtered.map((m, i) => {
-                  const pi = currentPayments[m.id];
-                  const isPaid = !!pi?.paid;
-                  return (
-                    <tr key={m.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                      <td className="p-2 border-l border-t border-slate-300 text-center font-bold">{m.seq}</td>
-                      <td className="p-2 border-l border-t border-slate-300 font-bold">{m.name}</td>
-                      <td className="p-2 border-l border-t border-slate-300">{m.family}</td>
-                      <td className="p-2 border-l border-t border-slate-300 text-center font-bold">
-                        {isPaid ? <span className="text-emerald-700">✓ واصل</span> : <span className="text-rose-700">✗</span>}
-                      </td>
-                      <td className="p-2 border-t border-slate-300 text-slate-600">{pi?.note || pi?.date || '—'}</td>
-                    </tr>
-                  );
+                {members.map((m, i) => {
+                  const pi = currentPayments[m.id]; const isPaid = !!pi?.paid;
+                  return <tr key={m.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}><td className="p-1.5 border-l border-t border-slate-300 text-center font-bold">{m.seq}</td><td className="p-1.5 border-l border-t border-slate-300 font-bold">{m.name}</td><td className="p-1.5 border-l border-t border-slate-300">{m.family}</td><td className="p-1.5 border-l border-t border-slate-300 text-center font-bold">{isPaid ? <span className="text-emerald-700">✓</span> : <span className="text-rose-700">✗</span>}</td><td className="p-1.5 border-t border-slate-300 text-slate-500">{pi?.note || pi?.date || '—'}</td></tr>;
                 })}
               </tbody>
             </table>
-
-            <div className="flex justify-between items-end pt-8 mt-8 border-t border-slate-300">
-              <div className="text-center"><p className="text-xs font-bold text-slate-500 mb-10">توقيع مسؤول التحصيل</p><p className="text-xs text-slate-400">..............................</p></div>
-              <div className="text-center"><p className="text-xs font-bold text-slate-500 mb-10">ختم وتوقيع الإدارة</p><p className="text-xs text-slate-400">..............................</p></div>
+            <div className="flex justify-between items-end pt-6 mt-6 border-t border-slate-300">
+              <div className="text-center"><p className="text-[10px] font-bold text-slate-500 mb-8">توقيع مسؤول التحصيل</p><p className="text-[10px] text-slate-400">..............................</p></div>
+              <div className="text-center"><p className="text-[10px] font-bold text-slate-500 mb-8">ختم الإدارة</p><p className="text-[10px] text-slate-400">..............................</p></div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Global style for input-field class */}
-      <style>{`
-        .input-field {
-          width: 100%;
-          background: rgba(15, 23, 42, 0.8);
-          border: 1px solid rgba(51, 65, 85, 0.5);
-          border-radius: 12px;
-          padding: 10px 14px;
-          font-size: 14px;
-          color: #e2e8f0;
-          outline: none;
-          transition: border-color 0.2s;
-          font-family: 'Tajawal', sans-serif;
-        }
-        .input-field:focus {
-          border-color: rgba(245, 158, 11, 0.5);
-        }
-        .input-field::placeholder {
-          color: #475569;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* ===== REUSABLE MODAL SHELL ===== */
-function Modal({ children, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="glass rounded-2xl w-full max-w-md p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute left-4 top-4 text-slate-500 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ModalHeader({ icon, color, title }) {
-  return (
-    <h3 className={`text-lg font-black ${color} flex items-center gap-2 font-cairo`}>
-      {icon} {title}
-    </h3>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <label className="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase tracking-wider">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function ModalActions({ onCancel, submitLabel, submitClass, onSubmit }) {
-  return (
-    <div className="flex justify-end gap-2 pt-3">
-      <button type="button" onClick={onCancel} className="px-4 py-2 text-xs font-bold glass-light text-slate-300 rounded-xl hover:bg-slate-800 transition-all">إلغاء</button>
-      {onSubmit ? (
-        <button type="button" onClick={onSubmit} className={`px-5 py-2 text-xs font-black rounded-xl shadow-lg transition-all ${submitClass}`}>{submitLabel}</button>
-      ) : (
-        <button type="submit" className={`px-5 py-2 text-xs font-black rounded-xl shadow-lg transition-all ${submitClass}`}>{submitLabel}</button>
       )}
     </div>
   );

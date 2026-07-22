@@ -205,11 +205,4 @@ export const INITIAL_MEMBERS = [
   { id: "178", seq: 178, name: "عباس ثامر جواد", family: "آل سيد كاظم" }
 ];
 
-export const DEFAULT_EVENT = {
-  id: "evt_default_1",
-  name: "فريضة ومناسبة العشيرة العامة",
-  date: new Date().toISOString().split('T')[0],
-  amountPerMember: 25000, // 25,000 د.ع default
-  notes: "تأشير المستحقات الواصلة لكل فرد",
-  payments: {} // object of memberId -> boolean
-};
+// No default event — user creates events manually
