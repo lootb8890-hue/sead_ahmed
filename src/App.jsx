@@ -215,8 +215,23 @@ export default function App() {
   const [noteText, setNoteText] = useState('');
   const [newEvent, setNewEvent] = useState({ name: '', amountPerMember: 25000, notes: '' });
   const [newMember, setNewMember] = useState({ name: '', family: INITIAL_FAMILIES[0] || '' });
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  /* ── Sync ── */
+  /* ── Sync & PWA ── */
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
+
+
   useEffect(() => { localStorage.setItem('saed_events', JSON.stringify(events)); }, [events]);
   useEffect(() => { localStorage.setItem('saed_active_event_id', activeEventId); }, [activeEventId]);
   useEffect(() => { localStorage.setItem('saed_members', JSON.stringify(members)); }, [members]);
@@ -383,6 +398,12 @@ export default function App() {
               {hasEvents && (
                 <button onClick={() => setIsPrintOpen(true)} title="طباعة" className="p-2.5 rounded-xl glass-input text-sky-400 hover:text-sky-300 active:scale-90 transition-all">
                   <Printer className="w-4 h-4" />
+                </button>
+              )}
+              {deferredPrompt && (
+                <button onClick={handleInstallClick} title="تثبيت التطبيق" className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 active:scale-90 transition-all flex items-center gap-1.5 px-3">
+                  <Download className="w-4 h-4" />
+                  <span className="text-[10px] font-bold hidden sm:inline">تثبيت</span>
                 </button>
               )}
               <button onClick={handleReset} title="إعادة ضبط" className="p-2.5 rounded-xl glass-input text-slate-500 hover:text-rose-400 active:scale-90 transition-all">
