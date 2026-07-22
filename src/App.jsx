@@ -7,7 +7,7 @@ import {
   LayoutGrid, ListFilter, Clock, ChevronDown,
   AlertCircle, CircleDollarSign, Home, UserCheck,
   Filter, ArrowUpDown, Eye, Banknote, TrendingUp,
-  Download, ChevronLeft
+  Download, ChevronLeft, Trash2
 } from 'lucide-react';
 import { INITIAL_FAMILIES, INITIAL_MEMBERS } from './data/initialData';
 import './index.css';
@@ -273,6 +273,25 @@ export default function App() {
     setMembers(prev => [...prev, { id: String(Date.now()), seq: prev.length + 1, name: newMember.name.trim(), family: newMember.family }]);
     setIsAddMemberOpen(false);
     setNewMember({ name: '', family: families[0] || '' });
+  };
+
+  const deleteMember = (id) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذا الفرد؟')) return;
+    setMembers(prev => {
+      const filtered = prev.filter(m => m.id !== id);
+      return filtered.map((m, idx) => ({ ...m, seq: idx + 1 }));
+    });
+    setPaymentsMap(prev => {
+      const newMap = { ...prev };
+      Object.keys(newMap).forEach(evtId => {
+        if (newMap[evtId][id]) {
+          const evtPayments = { ...newMap[evtId] };
+          delete evtPayments[id];
+          newMap[evtId] = evtPayments;
+        }
+      });
+      return newMap;
+    });
   };
 
   const handleReset = () => {
@@ -649,6 +668,9 @@ export default function App() {
                       }
                     </div>
                   )}
+                  <button onClick={() => deleteMember(m.id)} className="p-2 shrink-0 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-rose-950 transition-colors" title="حذف">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>
