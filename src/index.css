@@ -1,29 +1,134 @@
 @import "tailwindcss";
 
+@theme {
+  --font-tajawal: 'Tajawal', sans-serif;
+  --font-cairo: 'Cairo', sans-serif;
+  --font-amiri: 'Amiri', serif;
+}
+
+/* ===== BASE LAYER ===== */
 @layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
   body {
-    font-family: 'Tajawal', 'Cairo', sans-serif;
-    background-color: #090d16;
-    color: #f1f5f9;
+    font-family: var(--font-tajawal);
+    background: linear-gradient(160deg, #030711 0%, #0a1628 40%, #0c0a1d 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: #d97706;
+    color: #0f172a;
   }
 }
 
-/* Print Styles for Clan Reports */
+/* ===== CUSTOM SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* ===== GLASSMORPHISM UTILITY ===== */
+.glass {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.45);
+}
+
+.glass-light {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.35);
+}
+
+/* ===== GLOW EFFECTS ===== */
+.glow-amber {
+  box-shadow: 0 0 20px rgba(217, 119, 6, 0.15), 0 0 60px rgba(217, 119, 6, 0.05);
+}
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15), 0 0 60px rgba(16, 185, 129, 0.05);
+}
+.glow-rose {
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.15), 0 0 60px rgba(244, 63, 94, 0.05);
+}
+
+/* ===== GRADIENT TEXT ===== */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706, #b45309);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== ANIMATED GRADIENT BG ===== */
+.animated-gradient {
+  background: linear-gradient(270deg, #d97706, #b45309, #92400e, #78350f, #d97706);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ===== PULSE RING ===== */
+@keyframes pulseRing {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 0.3; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+.pulse-ring {
+  animation: pulseRing 2.5s ease-in-out infinite;
+}
+
+/* ===== FLOATING ===== */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ===== CARD HOVER ===== */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== PRINT STYLES ===== */
 @media print {
   body {
-    background-color: #ffffff !important;
-    color: #000000 !important;
+    background: #fff !important;
+    color: #000 !important;
     font-family: 'Tajawal', 'Cairo', serif !important;
   }
-  
-  .no-print {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
   .print-container {
     width: 100% !important;
     max-width: 100% !important;
@@ -31,41 +136,20 @@
     padding: 20px !important;
     box-shadow: none !important;
     border: none !important;
+    background: #fff !important;
   }
-
   table {
     width: 100% !important;
     border-collapse: collapse !important;
   }
-
   th, td {
     border: 1px solid #333 !important;
-    padding: 8px 12px !important;
-    font-size: 12pt !important;
+    padding: 6px 10px !important;
+    font-size: 11pt !important;
     color: #000 !important;
   }
-
   th {
-    background-color: #f1f5f9 !important;
+    background: #f0f0f0 !important;
     font-weight: bold !important;
   }
-}
-
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
 }
