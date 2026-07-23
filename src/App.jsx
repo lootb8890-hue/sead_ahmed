@@ -7,7 +7,7 @@ import {
   LayoutGrid, ListFilter, Clock, ChevronDown,
   AlertCircle, CircleDollarSign, Home, UserCheck,
   Filter, ArrowUpDown, Eye, Banknote, TrendingUp,
-  Download, ChevronLeft, Trash2
+  Download, ChevronLeft, Trash2, Share, PlusSquare
 } from 'lucide-react';
 import { INITIAL_FAMILIES, INITIAL_MEMBERS } from './data/initialData';
 import './index.css';
@@ -216,6 +216,10 @@ export default function App() {
   const [newEvent, setNewEvent] = useState({ name: '', amountPerMember: 25000, notes: '' });
   const [newMember, setNewMember] = useState({ name: '', family: INITIAL_FAMILIES[0] || '' });
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showIOSInstall, setShowIOSInstall] = useState(false);
+
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
   /* ── Sync & PWA ── */
   useEffect(() => {
@@ -225,6 +229,10 @@ export default function App() {
   }, []);
 
   const handleInstallClick = async () => {
+    if (isIOS) {
+      setShowIOSInstall(true);
+      return;
+    }
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -400,7 +408,7 @@ export default function App() {
                   <Printer className="w-4 h-4" />
                 </button>
               )}
-              {deferredPrompt && (
+              {(deferredPrompt || (isIOS && !isStandalone)) && (
                 <button onClick={handleInstallClick} title="تثبيت التطبيق" className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 active:scale-90 transition-all flex items-center gap-1.5 px-3">
                   <Download className="w-4 h-4" />
                   <span className="text-[10px] font-bold hidden sm:inline">تثبيت</span>
@@ -729,6 +737,30 @@ export default function App() {
       </nav>
 
       {/* ═════ MODALS ═════ */}
+
+      {showIOSInstall && (
+        <Modal onClose={() => setShowIOSInstall(false)}>
+          <ModalHeader icon={<Download className="w-5 h-5" />} color="text-sky-400" title="تثبيت التطبيق على آيفون" />
+          <div className="p-4 text-center space-y-5 my-2">
+            <p className="text-sm font-bold text-slate-300 font-cairo">
+              لتثبيت التطبيق على شاشتك الرئيسية، يرجى اتباع الخطوات التالية:
+            </p>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 text-slate-300 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                <span className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs shrink-0">1</span>
+                <span className="text-sm font-bold font-cairo text-right flex-1">اضغط على زر المشاركة أسفل الشاشة</span>
+                <Share className="w-5 h-5 text-sky-400 shrink-0" />
+              </div>
+              <div className="flex items-center gap-3 text-slate-300 bg-slate-800/50 p-3 rounded-xl border border-slate-700/50">
+                <span className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs shrink-0">2</span>
+                <span className="text-sm font-bold font-cairo text-right flex-1">اختر (إضافة إلى الصفحة الرئيسية)</span>
+                <PlusSquare className="w-5 h-5 text-sky-400 shrink-0" />
+              </div>
+            </div>
+          </div>
+          <ModalBtns onCancel={() => setShowIOSInstall(false)} submitLabel="حسناً، فهمت" submitClass="bg-sky-500 hover:bg-sky-400 text-slate-950" />
+        </Modal>
+      )}
 
       {isAddEventOpen && (
         <Modal onClose={() => setIsAddEventOpen(false)}>
