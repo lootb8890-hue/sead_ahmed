@@ -15,7 +15,7 @@ import './index.css';
 /* ═══════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════ */
-const formatIQD = (v) => new Intl.NumberFormat('ar-IQ').format(v) + ' د.ع';
+const formatIQD = (v) => new Intl.NumberFormat('en-US').format(v) + ' د.ع';
 
 /* ═══════════════════════════════════════════
    CUSTOM DROPDOWN (replaces native <select>)
@@ -259,7 +259,7 @@ export default function App() {
     if (!currentEvent) return;
     const wasPaid = !!currentPayments[id]?.paid;
 
-    setPaymentsMap(prev => ({ ...prev, [currentEvent.id]: { ...prev[currentEvent.id], [id]: { paid: !wasPaid, date: !wasPaid ? new Date().toLocaleDateString('ar-IQ') : '', note: currentPayments[id]?.note || '' } } }));
+    setPaymentsMap(prev => ({ ...prev, [currentEvent.id]: { ...prev[currentEvent.id], [id]: { paid: !wasPaid, date: !wasPaid ? new Date().toLocaleDateString('en-GB') : '', note: currentPayments[id]?.note || '' } } }));
   };
 
   const markFamilyPaid = (fam) => {
@@ -268,7 +268,7 @@ export default function App() {
     const ids = members.filter(m => m.family === fam).map(m => m.id);
     setPaymentsMap(prev => {
       const em = { ...(prev[currentEvent.id] || {}) };
-      ids.forEach(id => { em[id] = { paid: true, date: new Date().toLocaleDateString('ar-IQ'), note: em[id]?.note || '' }; });
+      ids.forEach(id => { em[id] = { paid: true, date: new Date().toLocaleDateString('en-GB'), note: em[id]?.note || '' }; });
       return { ...prev, [currentEvent.id]: em };
     });
   };
@@ -401,7 +401,7 @@ export default function App() {
 
   /* ── Event options for custom dropdown ── */
   const eventOptions = useMemo(() =>
-    events.map(evt => ({ value: evt.id, label: `${evt.name} — ${formatIQD(evt.amountPerMember)}` }))
+    events.map(evt => ({ value: evt.id, label: evt.name }))
   , [events]);
 
   /* ═══════════════════════════════════════════
@@ -431,7 +431,7 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-base sm:text-lg font-black text-gradient-gold font-cairo leading-tight">السادة الزوامل</h1>
-                <p className="text-[9px] text-slate-500 font-semibold">نظام السداد والفراض والمناسبات</p>
+
               </div>
             </div>
 
@@ -889,7 +889,7 @@ export default function App() {
           </div>
           <div className="print-container w-full max-w-4xl bg-white text-slate-950 rounded-2xl p-6 sm:p-10 shadow-2xl text-right">
             <div className="border-b-2 border-slate-900 pb-4 mb-4 flex items-start justify-between">
-              <div><h1 className="text-xl font-black text-slate-950 font-cairo mb-1">كشف تحصيل السادة الزوامل</h1><p className="text-xs font-bold text-slate-600">{currentEvent.name}</p><p className="text-[10px] text-slate-400 mt-0.5">{new Date().toLocaleDateString('ar-IQ')}</p></div>
+              <div><h1 className="text-xl font-black text-slate-950 font-cairo mb-1">السادة الزوامل</h1><p className="text-xs font-bold text-slate-600">{currentEvent.name}</p><p className="text-[10px] text-slate-400 mt-0.5">{new Date().toLocaleDateString('en-GB')}</p></div>
               <div className="text-left border-r-2 border-slate-300 pr-3"><p className="text-[10px] font-bold text-slate-500">المبلغ/فرد</p><p className="text-base font-black font-cairo">{formatIQD(stats.amt)}</p></div>
             </div>
             <div className="grid grid-cols-4 gap-2 mb-4 bg-slate-100 p-3 rounded-lg text-center border border-slate-300 text-xs">
