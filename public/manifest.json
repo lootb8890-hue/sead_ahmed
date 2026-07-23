@@ -1,7 +1,7 @@
 {
-  "name": "تطبيق السادة",
-  "short_name": "السادة",
-  "description": "تطبيق السادة - نظام السداد والفراض والمناسبات",
+  "name": "تطبيق السادة الزوامل",
+  "short_name": "السادة الزوامل",
+  "description": "تطبيق السادة الزوامل - نظام السداد والفراض والمناسبات",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

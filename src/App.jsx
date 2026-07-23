@@ -383,7 +383,7 @@ export default function App() {
                 <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950 pulse-ring"></div>
               </div>
               <div>
-                <h1 className="text-base sm:text-lg font-black text-gradient-gold font-cairo leading-tight">تطبيق السادة</h1>
+                <h1 className="text-base sm:text-lg font-black text-gradient-gold font-cairo leading-tight">تطبيق السادة الزوامل</h1>
                 <p className="text-[9px] text-slate-500 font-semibold">نظام السداد والفراض والمناسبات</p>
               </div>
             </div>
@@ -633,7 +633,7 @@ export default function App() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-black text-white font-cairo flex items-center gap-2">
                 <Users className="w-5 h-5 text-sky-400" />
-                سجل أفراد السادة
+                سجل أفراد السادة الزوامل
               </h2>
               <button onClick={() => setIsAddMemberOpen(true)} className="flex items-center gap-1 px-3 py-2 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-xl text-[11px] font-bold active:scale-95 transition-all">
                 <UserPlus className="w-3.5 h-3.5" /> إضافة
@@ -774,7 +774,7 @@ export default function App() {
           </div>
           <div className="print-container w-full max-w-4xl bg-white text-slate-950 rounded-2xl p-6 sm:p-10 shadow-2xl text-right">
             <div className="border-b-2 border-slate-900 pb-4 mb-4 flex items-start justify-between">
-              <div><h1 className="text-xl font-black text-slate-950 font-cairo mb-1">كشف تحصيل السادة</h1><p className="text-xs font-bold text-slate-600">{currentEvent.name}</p><p className="text-[10px] text-slate-400 mt-0.5">{new Date().toLocaleDateString('ar-IQ')}</p></div>
+              <div><h1 className="text-xl font-black text-slate-950 font-cairo mb-1">كشف تحصيل السادة الزوامل</h1><p className="text-xs font-bold text-slate-600">{currentEvent.name}</p><p className="text-[10px] text-slate-400 mt-0.5">{new Date().toLocaleDateString('ar-IQ')}</p></div>
               <div className="text-left border-r-2 border-slate-300 pr-3"><p className="text-[10px] font-bold text-slate-500">المبلغ/فرد</p><p className="text-base font-black font-cairo">{formatIQD(stats.amt)}</p></div>
             </div>
             <div className="grid grid-cols-4 gap-2 mb-4 bg-slate-100 p-3 rounded-lg text-center border border-slate-300 text-xs">
