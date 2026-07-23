@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import confetti from 'canvas-confetti';
+
 import {
   CheckCircle2, XCircle, Search, Plus, Printer,
   RotateCcw, Users, Wallet, Calendar, UserPlus,
@@ -207,13 +207,13 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFamily, setSelectedFamily] = useState('ALL');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('table');
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
   const [noteModal, setNoteModal] = useState(null);
   const [noteText, setNoteText] = useState('');
-  const [newEvent, setNewEvent] = useState({ name: '', amountPerMember: 25000, notes: '' });
+  const [newEvent, setNewEvent] = useState({ name: '', amountPerMember: 15000, notes: '' });
   const [newMember, setNewMember] = useState({ name: '', family: INITIAL_FAMILIES[0] || '' });
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIOSInstall, setShowIOSInstall] = useState(false);
@@ -251,20 +251,18 @@ export default function App() {
   const currentPayments = useMemo(() => currentEvent ? (paymentsMap[currentEvent.id] || {}) : {}, [paymentsMap, currentEvent]);
   const hasEvents = events.length > 0;
 
-  /* ── Confetti ── */
-  const pop = () => confetti({ particleCount: 80, spread: 70, origin: { y: 0.65 }, colors: ['#fbbf24', '#10b981', '#f59e0b', '#34d399'] });
 
   /* ── Actions ── */
   const togglePayment = (id) => {
     if (!currentEvent) return;
     const wasPaid = !!currentPayments[id]?.paid;
-    if (!wasPaid) pop();
+
     setPaymentsMap(prev => ({ ...prev, [currentEvent.id]: { ...prev[currentEvent.id], [id]: { paid: !wasPaid, date: !wasPaid ? new Date().toLocaleDateString('ar-IQ') : '', note: currentPayments[id]?.note || '' } } }));
   };
 
   const markFamilyPaid = (fam) => {
     if (!currentEvent) return;
-    pop();
+
     const ids = members.filter(m => m.family === fam).map(m => m.id);
     setPaymentsMap(prev => {
       const em = { ...(prev[currentEvent.id] || {}) };
@@ -287,7 +285,20 @@ export default function App() {
     setActiveEventId(evt.id);
     setPaymentsMap(prev => ({ ...prev, [evt.id]: {} }));
     setIsAddEventOpen(false);
-    setNewEvent({ name: '', amountPerMember: 25000, notes: '' });
+    setNewEvent({ name: '', amountPerMember: 15000, notes: '' });
+  };
+
+  const deleteEvent = (id) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذه المناسبة بالكامل؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+    setEvents(prev => prev.filter(e => e.id !== id));
+    setPaymentsMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[id];
+      return newMap;
+    });
+    if (activeEventId === id) {
+      setActiveEventId('');
+    }
   };
 
   const createMember = (e) => {
@@ -296,6 +307,13 @@ export default function App() {
     setMembers(prev => [...prev, { id: String(Date.now()), seq: prev.length + 1, name: newMember.name.trim(), family: newMember.family }]);
     setIsAddMemberOpen(false);
     setNewMember({ name: '', family: families[0] || '' });
+  };
+
+  const editMemberName = (id, currentName) => {
+    const newName = window.prompt("تعديل اسم الفرد:", currentName);
+    if (newName && newName.trim()) {
+      setMembers(prev => prev.map(m => m.id === id ? { ...m, name: newName.trim() } : m));
+    }
   };
 
   const deleteMember = (id) => {
@@ -466,7 +484,12 @@ export default function App() {
                     <div className="glass-card rounded-2xl p-5 mb-5 glow-amber relative overflow-hidden">
                       <div className="absolute top-0 left-0 w-28 h-28 bg-amber-500/[0.06] rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2"></div>
                       <div className="relative z-10">
-                        <h2 className="text-xl sm:text-2xl font-black text-white font-cairo mb-1.5">{currentEvent.name}</h2>
+                        <h2 className="text-xl sm:text-2xl font-black text-white font-cairo mb-1.5 flex items-center justify-between">
+                          <span>{currentEvent.name}</span>
+                          <button onClick={() => deleteEvent(currentEvent.id)} className="p-1.5 sm:p-2 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-rose-950 transition-colors" title="حذف المناسبة">
+                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </button>
+                        </h2>
                         <p className="text-xs text-slate-400">
                           المبلغ: <strong className="text-amber-400 font-cairo">{formatIQD(stats.amt)}</strong> لكل فرد
                           {currentEvent.notes && <span className="text-slate-500"> • {currentEvent.notes}</span>}
@@ -697,9 +720,14 @@ export default function App() {
                       }
                     </div>
                   )}
-                  <button onClick={() => deleteMember(m.id)} className="p-2 shrink-0 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-rose-950 transition-colors" title="حذف">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => editMemberName(m.id, m.name)} className="p-2 rounded-lg bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-sky-950 transition-colors" title="تعديل الاسم">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => deleteMember(m.id)} className="p-2 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-rose-950 transition-colors" title="حذف">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
