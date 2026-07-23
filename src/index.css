@@ -161,6 +161,13 @@
     margin: 0 !important; padding: 16px !important;
     box-shadow: none !important; border: none !important;
     background: #fff !important;
+    position: static !important;
+    overflow: visible !important;
+  }
+  .modal-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: none !important;
   }
   table { width: 100% !important; border-collapse: collapse !important; }
   th, td { border: 1px solid #333 !important; padding: 5px 8px !important; font-size: 10pt !important; color: #000 !important; }

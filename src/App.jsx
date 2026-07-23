@@ -217,7 +217,9 @@ export default function App() {
   const [newMember, setNewMember] = useState({ name: '', family: INITIAL_FAMILIES[0] || '' });
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIOSInstall, setShowIOSInstall] = useState(false);
-
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [promptDialog, setPromptDialog] = useState(null);
+  const [promptValue, setPromptValue] = useState('');
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
@@ -289,16 +291,20 @@ export default function App() {
   };
 
   const deleteEvent = (id) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه المناسبة بالكامل؟ لا يمكن التراجع عن هذا الإجراء.')) return;
-    setEvents(prev => prev.filter(e => e.id !== id));
-    setPaymentsMap(prev => {
-      const newMap = { ...prev };
-      delete newMap[id];
-      return newMap;
+    setConfirmDialog({
+      title: 'حذف المناسبة',
+      message: 'هل أنت متأكد من حذف هذه المناسبة بالكامل؟ لا يمكن التراجع عن هذا الإجراء.',
+      onConfirm: () => {
+        setEvents(prev => prev.filter(e => e.id !== id));
+        setPaymentsMap(prev => {
+          const newMap = { ...prev };
+          delete newMap[id];
+          return newMap;
+        });
+        if (activeEventId === id) setActiveEventId('');
+        setConfirmDialog(null);
+      }
     });
-    if (activeEventId === id) {
-      setActiveEventId('');
-    }
   };
 
   const createMember = (e) => {
@@ -310,28 +316,43 @@ export default function App() {
   };
 
   const editMemberName = (id, currentName) => {
-    const newName = window.prompt("تعديل اسم الفرد:", currentName);
-    if (newName && newName.trim()) {
-      setMembers(prev => prev.map(m => m.id === id ? { ...m, name: newName.trim() } : m));
-    }
+    setPromptValue(currentName);
+    setPromptDialog({
+      title: 'تعديل اسم الفرد',
+      onConfirm: () => {
+        if (promptValue && promptValue.trim()) {
+          setMembers(prev => prev.map(m => m.id === id ? { ...m, name: promptValue.trim() } : m));
+        }
+        setPromptDialog(null);
+      }
+    });
   };
 
   const deleteMember = (id) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا الفرد؟')) return;
-    setMembers(prev => {
-      const filtered = prev.filter(m => m.id !== id);
-      return filtered.map((m, idx) => ({ ...m, seq: idx + 1 }));
-    });
-    setPaymentsMap(prev => {
-      const newMap = { ...prev };
-      Object.keys(newMap).forEach(evtId => {
-        if (newMap[evtId][id]) {
-          const evtPayments = { ...newMap[evtId] };
-          delete evtPayments[id];
-          newMap[evtId] = evtPayments;
-        }
-      });
-      return newMap;
+    setConfirmDialog({
+      title: 'حذف فرد',
+      message: 'هل أنت متأكد من حذف هذا الفرد؟ لا يمكن التراجع عن هذا الإجراء.',
+      onConfirm: () => {
+        setMembers(prev => {
+          const mToDelete = prev.find(m => m.id === id);
+          if (!mToDelete) return prev;
+          const fam = mToDelete.family;
+          const filtered = prev.filter(m => m.id !== id);
+          return filtered.map(m => {
+            if (m.family === fam && m.seq > mToDelete.seq) return { ...m, seq: m.seq - 1 };
+            return m;
+          });
+        });
+        setPaymentsMap(prev => {
+          const newMap = {};
+          for (let eId in prev) {
+            newMap[eId] = { ...prev[eId] };
+            delete newMap[eId][id];
+          }
+          return newMap;
+        });
+        setConfirmDialog(null);
+      }
     });
   };
 
@@ -790,6 +811,40 @@ export default function App() {
         </Modal>
       )}
 
+      {confirmDialog && (
+        <Modal onClose={() => setConfirmDialog(null)}>
+          <ModalHeader icon={<AlertCircle className="w-5 h-5" />} color="text-rose-400" title={confirmDialog.title} />
+          <div className="p-4 text-center my-2">
+            <p className="text-sm font-bold text-slate-300 font-cairo leading-relaxed">
+              {confirmDialog.message}
+            </p>
+          </div>
+          <div className="flex gap-2 p-4 pt-0">
+            <button onClick={confirmDialog.onConfirm} className="flex-1 py-3 rounded-xl bg-rose-500 text-rose-950 font-bold active:scale-95 transition-all shadow-lg shadow-rose-500/20 hover:bg-rose-400">تأكيد</button>
+            <button onClick={() => setConfirmDialog(null)} className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-all hover:bg-slate-700">إلغاء</button>
+          </div>
+        </Modal>
+      )}
+
+      {promptDialog && (
+        <Modal onClose={() => setPromptDialog(null)}>
+          <ModalHeader icon={<Edit3 className="w-5 h-5" />} color="text-sky-400" title={promptDialog.title} />
+          <div className="p-4">
+            <input 
+              type="text" 
+              value={promptValue} 
+              onChange={(e) => setPromptValue(e.target.value)}
+              className="input-field mb-2"
+              autoFocus
+              placeholder="أدخل الاسم..."
+            />
+          </div>
+          <div className="flex gap-2 p-4 pt-0">
+            <button onClick={promptDialog.onConfirm} className="flex-1 py-3 rounded-xl bg-sky-500 text-sky-950 font-bold active:scale-95 transition-all shadow-lg shadow-sky-500/20 hover:bg-sky-400">حفظ</button>
+            <button onClick={() => setPromptDialog(null)} className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold active:scale-95 transition-all hover:bg-slate-700">إلغاء</button>
+          </div>
+        </Modal>
+      )}
       {isAddEventOpen && (
         <Modal onClose={() => setIsAddEventOpen(false)}>
           <ModalHeader icon={<Plus className="w-5 h-5" />} color="text-amber-400" title="مناسبة جديدة" />
@@ -860,10 +915,6 @@ export default function App() {
                 </div>
               );
             })}
-            <div className="flex justify-between items-end pt-6 mt-6 border-t border-slate-300">
-              <div className="text-center"><p className="text-[10px] font-bold text-slate-500 mb-8">توقيع مسؤول التحصيل</p><p className="text-[10px] text-slate-400">..............................</p></div>
-              <div className="text-center"><p className="text-[10px] font-bold text-slate-500 mb-8">ختم الإدارة</p><p className="text-[10px] text-slate-400">..............................</p></div>
-            </div>
           </div>
         </div>
       )}
