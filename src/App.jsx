@@ -378,8 +378,8 @@ export default function App() {
       </div>
 
       {/* ═════ TOP HEADER ═════ */}
-      <header className="sticky top-0 z-30 glass no-print">
-        <div className="max-w-3xl mx-auto px-4 py-3">
+      <header className="sticky top-0 z-30 glass no-print" style={{ paddingTop: 'max(env(safe-area-inset-top), 0px)' }}>
+        <div className="max-w-3xl mx-auto px-4 pb-3 pt-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="relative">
