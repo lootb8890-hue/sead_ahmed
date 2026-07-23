@@ -1,29 +1,40 @@
-const CACHE_NAME = 'clan-app-v2'; // Bumped version to force cache clear
+const CACHE_NAME = 'clan-app-v4';
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Force the waiting service worker to become the active service worker.
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // Clear all caches on activate to ensure we don't serve stale Vite assets
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => caches.delete(k)))
+      Promise.all(
+        keys.map((k) => {
+          if (k !== CACHE_NAME) return caches.delete(k);
+        })
+      )
     )
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network-First strategy
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (!url.protocol.startsWith('http')) return;
+
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Optionally cache the new response here if needed, but for Vite it's safer to just rely on browser cache or Vercel edge
+    caches.match(event.request).then((cachedResponse) => {
+      const networkFetch = fetch(event.request).then((response) => {
+        const resClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, resClone);
+        });
         return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      }).catch(() => {
+        return cachedResponse;
+      });
+      return cachedResponse || networkFetch;
+    })
   );
 });
+

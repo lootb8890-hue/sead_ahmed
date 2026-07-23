@@ -796,7 +796,7 @@ export default function App() {
       )}
 
       {isPrintOpen && currentEvent && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 flex flex-col items-center modal-overlay">
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md overflow-y-auto p-4 flex flex-col items-center modal-overlay" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
           <div className="w-full max-w-4xl flex items-center justify-between mb-4 no-print">
             <h3 className="text-base font-bold text-slate-200 font-cairo">كشف رسمي</h3>
             <div className="flex gap-2">
@@ -815,15 +815,23 @@ export default function App() {
               <div><p className="font-bold text-slate-500 text-[9px]">المتبقون</p><p className="font-black text-sm text-rose-700">{stats.unpaid}</p></div>
               <div><p className="font-bold text-slate-500 text-[9px]">المحصّل</p><p className="font-black text-xs text-amber-700">{formatIQD(stats.collected)}</p></div>
             </div>
-            <table className="w-full text-right text-[10px] border border-slate-400 mb-6">
-              <thead><tr className="bg-slate-200 font-bold border-b border-slate-400"><th className="p-1.5 border-l border-slate-400 text-center w-8">ت</th><th className="p-1.5 border-l border-slate-400">الاسم</th><th className="p-1.5 border-l border-slate-400">العائلة</th><th className="p-1.5 border-l border-slate-400 text-center w-16">الحالة</th><th className="p-1.5">ملاحظات</th></tr></thead>
-              <tbody>
-                {members.map((m, i) => {
-                  const pi = currentPayments[m.id]; const isPaid = !!pi?.paid;
-                  return <tr key={m.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}><td className="p-1.5 border-l border-t border-slate-300 text-center font-bold">{m.seq}</td><td className="p-1.5 border-l border-t border-slate-300 font-bold">{m.name}</td><td className="p-1.5 border-l border-t border-slate-300">{m.family}</td><td className="p-1.5 border-l border-t border-slate-300 text-center font-bold">{isPaid ? <span className="text-emerald-700">✓</span> : <span className="text-rose-700">✗</span>}</td><td className="p-1.5 border-t border-slate-300 text-slate-500">{pi?.note || pi?.date || '—'}</td></tr>;
-                })}
-              </tbody>
-            </table>
+            {families.filter(f => members.some(m => m.family === f)).map((family, idx, arr) => {
+              const familyMembers = members.filter(m => m.family === family);
+              return (
+                <div key={family} className={`mb-8 ${idx !== arr.length - 1 ? 'print-page-break' : ''}`}>
+                  <h2 className="text-sm font-black bg-slate-200 border border-slate-400 p-2 mb-2 text-slate-900 font-cairo">عائلة: {family}</h2>
+                  <table className="w-full text-right text-[10px] border border-slate-400">
+                    <thead><tr className="bg-slate-100 font-bold border-b border-slate-400"><th className="p-1.5 border-l border-slate-400 text-center w-8">ت</th><th className="p-1.5 border-l border-slate-400">الاسم</th><th className="p-1.5 border-l border-slate-400 text-center w-16">الحالة</th><th className="p-1.5">ملاحظات</th></tr></thead>
+                    <tbody>
+                      {familyMembers.map((m, i) => {
+                        const pi = currentPayments[m.id]; const isPaid = !!pi?.paid;
+                        return <tr key={m.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}><td className="p-1.5 border-l border-t border-slate-300 text-center font-bold">{m.seq}</td><td className="p-1.5 border-l border-t border-slate-300 font-bold">{m.name}</td><td className="p-1.5 border-l border-t border-slate-300 text-center font-bold">{isPaid ? <span className="text-emerald-700">✓</span> : <span className="text-rose-700">✗</span>}</td><td className="p-1.5 border-t border-slate-300 text-slate-500">{pi?.note || pi?.date || '—'}</td></tr>;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
             <div className="flex justify-between items-end pt-6 mt-6 border-t border-slate-300">
               <div className="text-center"><p className="text-[10px] font-bold text-slate-500 mb-8">توقيع مسؤول التحصيل</p><p className="text-[10px] text-slate-400">..............................</p></div>
               <div className="text-center"><p className="text-[10px] font-bold text-slate-500 mb-8">ختم الإدارة</p><p className="text-[10px] text-slate-400">..............................</p></div>
