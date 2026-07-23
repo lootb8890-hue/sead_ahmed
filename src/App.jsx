@@ -383,7 +383,7 @@ export default function App() {
                 <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-950 pulse-ring"></div>
               </div>
               <div>
-                <h1 className="text-base sm:text-lg font-black text-gradient-gold font-cairo leading-tight">تطبيق السادة الزوامل</h1>
+                <h1 className="text-base sm:text-lg font-black text-gradient-gold font-cairo leading-tight">السادة الزوامل</h1>
                 <p className="text-[9px] text-slate-500 font-semibold">نظام السداد والفراض والمناسبات</p>
               </div>
             </div>
