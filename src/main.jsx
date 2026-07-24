@@ -4,9 +4,20 @@ import './index.css'
 import App from './App.jsx'
 import { registerSW } from 'virtual:pwa-register'
 
+// Automatically purge legacy/outdated caches on startup without requiring user action
+if ('caches' in window) {
+  caches.keys().then((keys) => {
+    keys.forEach((key) => {
+      if (key.includes('clan-app') || key.includes('v7') || key.includes('v1')) {
+        caches.delete(key);
+      }
+    });
+  });
+}
+
 const updateSW = registerSW({
+  immediate: true,
   onNeedRefresh() {
-    // Force the new service worker to activate and reload the page automatically
     updateSW(true)
   }
 })
